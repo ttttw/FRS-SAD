@@ -58,8 +58,11 @@ def bot_logic():
             time.sleep(600)
 
 if __name__ == "__main__":
-    # تشغيل السيرفر الوهمي في خيط (Thread) منفصل
-    t = threading.Thread(target=run_flask)
+    # تشغيل منطق البوت في الخلفية
+    t = threading.Thread(target=bot_logic)
+    t.daemon = True
     t.start()
-    # تشغيل منطق البوت
-    bot_logic()
+    
+    # تشغيل سيرفر الويب (المنفذ 10000 مطلوب لـ Render)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
