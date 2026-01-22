@@ -1,22 +1,32 @@
 import os
 import random
 import time
+import threading
 from datetime import datetime
+from flask import Flask
 from instagrapi import Client
 
-# سحب المعلومات الحساسة من إعدادات Render (أمان 100%)
+# --- كود الوهمي لتشغيل الخدمة كـ Web Service مجاناً ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=10000)
+
+# --- إعدادات البوت ---
 USERNAME = os.environ.get('INSTA_USER')
 PASSWORD = os.environ.get('INSTA_PASS')
 
 def get_styled_comment():
     base_text = "يا جماعة الخير، أنا أختكم، سدت كل الأبواب بوجهي وقررت أترزق الله بمتجري الخاص (شذر هوم) بدل ما أحتاج لأحد. الشغل مو سهل والمنافسة صعبة، بس عندي ثقة بالله وبغيرة أهل ديرتي. فدوة بس ادعموا الصفحة، متابعتكم هي رأس مالي. الله يستر على كل وحدة تدعمني ويوفق كل شاب يدعم حلمي"
     emojis = [" 🥺💔", " 🙏✨", " 📥🌹", " 🧿🤲", " 🦋💎", " ❤️🇮🇶"]
-    selected_emoji = random.choice(emojis)
-    return f"{base_text} {selected_emoji}"
+    return f"{base_text} {random.choice(emojis)}"
 
-def run_bot():
+def bot_logic():
     cl = Client()
-    # في Render، لا نضمن بقاء ملف الجلسة دائماً، لذا سنسجل الدخول عند كل تشغيل
     try:
         cl.login(USERNAME, PASSWORD)
         print("تم تسجيل الدخول بنجاح ✅")
@@ -25,13 +35,9 @@ def run_bot():
         return
 
     while True:
-        # نظام النوم (Render يعمل بتوقيت UTC، لذا انتبهي لفرق التوقيت)
-        # توقيت العراق (UTC+3)، لذا الساعة 12 ليلاً بالعراق هي 9 مساءً UTC
-        now_hour = datetime.utcnow().hour + 3
-        if now_hour >= 24: now_hour -= 24
-        
+        now_hour = (datetime.utcnow().hour + 3) % 24
         if 0 <= now_hour < 6:
-            print(f"وقت النوم بالعراق (الساعة {now_hour})... سبات 😴")
+            print(f"وقت النوم بالعراق ({now_hour})... سبات 😴")
             time.sleep(1800)
             continue
 
@@ -40,13 +46,20 @@ def run_bot():
             for media in medias:
                 if media.media_type == 2:
                     comment_text = get_styled_comment()
-                    cl.media_comment(media.id, comment_text)
-                    print(f"تم التعليق على ريلز {media.code}")
-                    time.sleep(random.randint(400, 800)) # انتظار بشري
+                    try:
+                        cl.media_comment(media.id, comment_text)
+                        print(f"تم التعليق ✅")
+                    except:
+                        time.sleep(1200)
+                    time.sleep(random.randint(450, 900))
             time.sleep(1200)
         except Exception as e:
             print(f"خطأ: {e}")
             time.sleep(600)
 
 if __name__ == "__main__":
-    run_bot()
+    # تشغيل السيرفر الوهمي في خيط (Thread) منفصل
+    t = threading.Thread(target=run_flask)
+    t.start()
+    # تشغيل منطق البوت
+    bot_logic()
