@@ -1,5 +1,4 @@
+instagrapi
 requests
-pyTelegramBotAPI
-rich
-pyfiglet
+
 
